@@ -33,6 +33,7 @@ impl Tape {
         self.tape.get(index).unwrap_or(&None).clone()
     }
 }
+
 struct Machine<'a> {
     counter: u8,
     alphabet: HashSet<Option<char>>,
@@ -63,12 +64,9 @@ impl<'a> Machine<'a> {
     fn run(mut self) {
         let mut next_state = 0;
         loop {
-            println!("State: {}", next_state);
             let state = self.states.get(&next_state).unwrap();
             let current_read = self.tape.read(self.counter as usize);
-            println!("Current Read: {:?}", current_read);
             next_state = (state.transition)(&current_read, &mut self.counter);
-            println!("Next State: {}", next_state);
             if next_state == self.halt_accept {
                 println!("Accepted");
                 break;
