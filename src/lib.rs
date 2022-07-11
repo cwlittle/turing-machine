@@ -80,7 +80,7 @@ impl Machine {
         }
     }
 
-    pub fn run(mut self) {
+    pub fn run(mut self) -> Self {
         let mut next_state = 0;
         loop {
             let state = self.states.get(&next_state).unwrap();
@@ -88,10 +88,10 @@ impl Machine {
             next_state = (state.transition)(&current_read, &mut self.tape);
             if next_state == self.halt_accept {
                 println!("Accepted");
-                break;
+                return self;
             } else if next_state == self.halt_reject {
                 println!("Rejected");
-                break;
+                return self;
             }
         }
     }
@@ -123,7 +123,7 @@ mod tests {
 
     #[test]
     fn generate_machine() {
-        let machine = Machine::new()
+        Machine::new()
             .add_state(
                 0,
                 State::new(&|current_read: &Option<char>, tape: &mut Tape| -> usize {
@@ -177,6 +177,14 @@ mod tests {
                 State::new(&|current_read: &Option<char>, tape: &mut Tape| -> usize {
                     match current_read {
                         None => 4,
+                        Some('0') => {
+                            tape.move_left();
+                            0
+                        }
+                        Some('1') => {
+                            tape.move_left();
+                            1
+                        }
                         _ => 5,
                     }
                 }),
@@ -184,6 +192,12 @@ mod tests {
             .add_accept_state(4)
             .add_reject_state(5)
             .add_tape("0101")
+            .run()
+            .add_tape("1111101010000")
+            .run()
+            .add_tape("1011")
+            .run()
+            .add_tape("11111111111101111110101000000000000101")
             .run();
     }
 }
