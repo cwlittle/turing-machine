@@ -1,36 +1,53 @@
 use std::collections::{HashMap, HashSet};
-struct State<'a> {
-    index: u8,
-    transition: &'a dyn Fn(&Option<char>, &mut u8) -> u8,
+pub struct State<'a> {
+    transition: &'a dyn Fn(&Option<char>, &mut Tape) -> u8,
 }
 
 impl<'a> State<'a> {
-    fn new(index: u8, transition: &'a dyn Fn(&Option<char>, &mut u8) -> u8) -> Self {
-        State { index, transition }
+    pub fn new(transition: &'a dyn Fn(&Option<char>, &mut Tape) -> u8) -> Self {
+        State { transition }
     }
 }
 
-struct Tape {
+pub struct Tape {
+    index: usize,
     tape: Vec<Option<char>>,
 }
 
 impl From<Vec<Option<char>>> for Tape {
     fn from(tape: Vec<Option<char>>) -> Self {
-        Tape { tape }
+        Tape { index: 0, tape }
     }
 }
 
 impl Tape {
-    fn new() -> Self {
-        Self { tape: vec![None] }
+    pub fn new() -> Self {
+        Self {
+            index: 0,
+            tape: vec![None],
+        }
     }
 
-    fn write(&mut self, index: usize, value: Option<char>) {
-        self.tape[index] = value;
+    pub fn write(&mut self, value: Option<char>) {
+        self.tape.insert(self.index, value);
     }
 
-    fn read(&mut self, index: usize) -> Option<char> {
-        self.tape.get(index).unwrap_or(&None).clone()
+    pub fn read(&mut self) -> Option<char> {
+        self.tape.get(self.index).unwrap_or(&None).clone()
+    }
+
+    pub fn move_left(&mut self) {
+        self.index += 1;
+        if self.index == self.tape.len() {
+            self.tape.push(None);
+        }
+    }
+
+    pub fn move_right(&mut self) {
+        self.index -= 1;
+        if self.index == self.tape.len() {
+            self.tape.push(None);
+        }
     }
 }
 
@@ -61,12 +78,12 @@ impl<'a> Machine<'a> {
         }
     }
 
-    fn run(mut self) {
+    pub fn run(mut self) {
         let mut next_state = 0;
         loop {
             let state = self.states.get(&next_state).unwrap();
-            let current_read = self.tape.read(self.counter as usize);
-            next_state = (state.transition)(&current_read, &mut self.counter);
+            let current_read = self.tape.read();
+            next_state = (state.transition)(&current_read, &mut self.tape);
             if next_state == self.halt_accept {
                 println!("Accepted");
                 break;
@@ -84,50 +101,49 @@ mod tests {
 
     #[test]
     fn generate_machine() {
-        let alphabet = vec![Some('0'), Some('1')];
-        let state_0 = State::new(0, &|current_read: &Option<char>, counter: &mut u8| -> u8 {
+        let state_0 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
             match current_read {
                 Some('0') => {
-                    *counter += 1;
+                    tape.move_left();
                     0
                 }
                 Some('1') => {
-                    *counter += 1;
+                    tape.move_left();
                     1
                 }
                 _ => 5,
             }
         });
 
-        let state_1 = State::new(0, &|current_read: &Option<char>, counter: &mut u8| -> u8 {
+        let state_1 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
             match current_read {
                 Some('0') => {
-                    *counter += 1;
+                    tape.move_left();
                     2
                 }
                 Some('1') => {
-                    *counter += 1;
+                    tape.move_left();
                     1
                 }
                 _ => 5,
             }
         });
 
-        let state_2 = State::new(0, &|current_read: &Option<char>, counter: &mut u8| -> u8 {
+        let state_2 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
             match current_read {
                 Some('0') => {
-                    *counter += 1;
+                    tape.move_left();
                     0
                 }
                 Some('1') => {
-                    *counter += 1;
+                    tape.move_left();
                     3
                 }
                 _ => 5,
             }
         });
 
-        let state_3 = State::new(0, &|current_read: &Option<char>, counter: &mut u8| -> u8 {
+        let state_3 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
             match current_read {
                 None => 4,
                 _ => 5,
