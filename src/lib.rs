@@ -1,4 +1,5 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+
 pub struct State<'a> {
     transition: &'a dyn Fn(&Option<char>, &mut Tape) -> u8,
 }
