@@ -51,9 +51,7 @@ impl Tape {
     }
 }
 
-struct Machine<'a> {
-    counter: u8,
-    alphabet: HashSet<Option<char>>,
+pub struct Machine<'a> {
     states: HashMap<u8, &'a State<'a>>,
     halt_accept: u8,
     halt_reject: u8,
@@ -61,16 +59,13 @@ struct Machine<'a> {
 }
 
 impl<'a> Machine<'a> {
-    fn new(
-        alphabet: HashSet<Option<char>>,
+    pub fn new(
         states: HashMap<u8, &'a State<'a>>,
         halt_accept: u8,
         halt_reject: u8,
         tape: Tape,
     ) -> Self {
         Self {
-            counter: 0,
-            alphabet,
             states,
             halt_accept,
             halt_reject,
@@ -157,13 +152,11 @@ mod tests {
         states.insert(3, &state_3);
 
         let machine = Machine::new(
-            HashSet::from_iter(alphabet.into_iter()),
             states,
             4,
             5,
             vec![Some('0'), Some('1'), Some('0'), Some('1')].into(),
         );
-
         machine.run();
     }
 }
