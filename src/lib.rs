@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 
-pub struct State<'a> {
-    transition: &'a dyn Fn(&Option<char>, &mut Tape) -> u8,
+pub struct State {
+    transition: &'static dyn Fn(&Option<char>, &mut Tape) -> usize,
 }
 
-impl<'a> State<'a> {
-    pub fn new(transition: &'a dyn Fn(&Option<char>, &mut Tape) -> u8) -> Self {
+impl State {
+    pub fn new(transition: &'static dyn Fn(&Option<char>, &mut Tape) -> usize) -> Self {
         State { transition }
     }
 }
@@ -52,25 +52,31 @@ impl Tape {
     }
 }
 
-pub struct Machine<'a> {
-    states: HashMap<u8, &'a State<'a>>,
-    halt_accept: u8,
-    halt_reject: u8,
+impl From<&str> for Tape {
+    fn from(s: &str) -> Self {
+        let mut tape = Tape::new();
+        for c in s.chars() {
+            tape.write(Some(c));
+            tape.move_left();
+        }
+        tape.index = 0;
+        tape
+    }
+}
+pub struct Machine {
+    states: HashMap<usize, State>,
+    halt_accept: usize,
+    halt_reject: usize,
     tape: Tape,
 }
 
-impl<'a> Machine<'a> {
-    pub fn new(
-        states: HashMap<u8, &'a State<'a>>,
-        halt_accept: u8,
-        halt_reject: u8,
-        tape: Tape,
-    ) -> Self {
+impl Machine {
+    pub fn new() -> Self {
         Self {
-            states,
-            halt_accept,
-            halt_reject,
-            tape,
+            states: HashMap::new(),
+            halt_accept: 0,
+            halt_reject: 0,
+            tape: Tape::new(),
         }
     }
 
@@ -89,6 +95,26 @@ impl<'a> Machine<'a> {
             }
         }
     }
+
+    pub fn add_state(mut self, index: usize, state: State) -> Self {
+        self.states.insert(index, state);
+        self
+    }
+
+    pub fn add_accept_state(mut self, index: usize) -> Self {
+        self.halt_accept = index;
+        self
+    }
+
+    pub fn add_reject_state(mut self, index: usize) -> Self {
+        self.halt_reject = index;
+        self
+    }
+
+    pub fn add_tape(mut self, tape_string: &str) -> Self {
+        self.tape = tape_string.into();
+        self
+    }
 }
 
 #[cfg(test)]
@@ -97,67 +123,67 @@ mod tests {
 
     #[test]
     fn generate_machine() {
-        let state_0 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
-            match current_read {
-                Some('0') => {
-                    tape.move_left();
-                    0
-                }
-                Some('1') => {
-                    tape.move_left();
-                    1
-                }
-                _ => 5,
-            }
-        });
-
-        let state_1 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
-            match current_read {
-                Some('0') => {
-                    tape.move_left();
-                    2
-                }
-                Some('1') => {
-                    tape.move_left();
-                    1
-                }
-                _ => 5,
-            }
-        });
-
-        let state_2 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
-            match current_read {
-                Some('0') => {
-                    tape.move_left();
-                    0
-                }
-                Some('1') => {
-                    tape.move_left();
-                    3
-                }
-                _ => 5,
-            }
-        });
-
-        let state_3 = State::new(&|current_read: &Option<char>, tape: &mut Tape| -> u8 {
-            match current_read {
-                None => 4,
-                _ => 5,
-            }
-        });
-
-        let mut states = HashMap::new();
-        states.insert(0, &state_0);
-        states.insert(1, &state_1);
-        states.insert(2, &state_2);
-        states.insert(3, &state_3);
-
-        let machine = Machine::new(
-            states,
-            4,
-            5,
-            vec![Some('0'), Some('1'), Some('0'), Some('1')].into(),
-        );
-        machine.run();
+        let machine = Machine::new()
+            .add_state(
+                0,
+                State::new(&|current_read: &Option<char>, tape: &mut Tape| -> usize {
+                    match current_read {
+                        Some('0') => {
+                            tape.move_left();
+                            0
+                        }
+                        Some('1') => {
+                            tape.move_left();
+                            1
+                        }
+                        _ => 5,
+                    }
+                }),
+            )
+            .add_state(
+                1,
+                State::new(&|current_read: &Option<char>, tape: &mut Tape| -> usize {
+                    match current_read {
+                        Some('0') => {
+                            tape.move_left();
+                            2
+                        }
+                        Some('1') => {
+                            tape.move_left();
+                            1
+                        }
+                        _ => 5,
+                    }
+                }),
+            )
+            .add_state(
+                2,
+                State::new(&|current_read: &Option<char>, tape: &mut Tape| -> usize {
+                    match current_read {
+                        Some('0') => {
+                            tape.move_left();
+                            0
+                        }
+                        Some('1') => {
+                            tape.move_left();
+                            3
+                        }
+                        _ => 5,
+                    }
+                }),
+            )
+            .add_state(
+                3,
+                State::new(&|current_read: &Option<char>, tape: &mut Tape| -> usize {
+                    match current_read {
+                        None => 4,
+                        _ => 5,
+                    }
+                }),
+            )
+            .add_accept_state(4)
+            .add_reject_state(5)
+            .add_tape("0101")
+            .run();
     }
 }
